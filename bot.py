@@ -88,6 +88,11 @@ def callback_query(call):
         ydl_opts = {
             'outtmpl': f'audio_{chat_id}.%(ext)s',
             'format': 'bestaudio/best',
+            'no_warnings': True,
+            'nocheckcertificate': True,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            },
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
@@ -101,6 +106,12 @@ def callback_query(call):
         ydl_opts = {
             'outtmpl': f'video_{chat_id}.%(ext)s',
             'format': f'best[height<={data}][filesize<45M]/best[filesize<45M]/best',
+            'no_warnings': True,
+            'nocheckcertificate': True,
+            # YouTube බ්ලොක් වීම මඟහරවා ගැනීමට User-Agent එකතු කිරීම
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
         }
         file_name = f'video_{chat_id}.mp4'
 
