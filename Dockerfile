@@ -1,9 +1,9 @@
 FROM python:3.10-slim
 
-# Install system dependencies including ffmpeg
+# Install ffmpeg, ffprobe, and essential build tools
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
