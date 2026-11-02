@@ -27,11 +27,9 @@ def send_welcome(message):
     )
     
     try:
-        # පින්තූරය සමඟ මැසේජ් එක යැවීම
         with open('Gemini_Generated_Image_mezbhmmezbhmmezb.jfif', 'rb') as photo:
             bot.send_photo(chat_id, photo, caption=welcome_msg)
     except FileNotFoundError:
-        # පින්තූරය නැති වුණොත් සාමාන්‍ය විදිහට මැසේජ් එක යැවීම
         bot.send_message(chat_id, welcome_msg)
 
 # Help Command Message එක (/help)
@@ -42,7 +40,7 @@ def send_help(message):
         "1️⃣ Send any video link from supported platforms (YouTube, TikTok, Facebook, etc.).\n"
         "2️⃣ Choose your preferred quality (144p to 4K) or select 320kbps MP3 Audio.\n"
         "3️⃣ Wait a few seconds while the bot processes and sends your file.\n\n"
-        "⚠️ **Important Note:** Telegram has a 50MB file size limit for bots. If you select 4K or 1080p, it will only work for short videos (like Shorts or Reels)."
+        "⚠️ **Important Note:** Telegram has a 50MB file size limit for bots."
     )
     bot.reply_to(message, help_msg, parse_mode='Markdown')
 
@@ -100,10 +98,9 @@ def callback_query(call):
         
     else:
         bot.edit_message_text(f"⏳ Downloading {data}p video, please wait...", chat_id=chat_id, message_id=call.message.message_id)
-        # Fly.io හි RAM එක ආරක්ෂා කර ගැනීමට සහ දෝෂ වළක්වා ගැනීමට ප්‍රශස්ත කරන ලද format සීමාව
         ydl_opts = {
             'outtmpl': f'video_{chat_id}.%(ext)s',
-            'format': f'best[height<={data}][filesize<45M]/best[filesize<45M]',
+            'format': f'best[height<={data}][filesize<45M]/best[filesize<45M]/best',
         }
         file_name = f'video_{chat_id}.mp4'
 
@@ -111,13 +108,18 @@ def callback_query(call):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        # ඩවුන්ලෝඩ් වූ ෆයිල් එකේ නම නිවැරදිව ලබා ගැනීම (ext වෙනස් විය හැක)
         actual_file_name = file_name
         if not os.path.exists(actual_file_name):
             for ext in ['.mp4', '.mkv', '.webm', '.mp3']:
                 if os.path.exists(f'video_{chat_id}{ext}'):
                     actual_file_name = f'video_{chat_id}{ext}'
                     break
+                if os.path.exists(f'audio_{chat_id}{ext}'):
+                    actual_file_name = f'audio_{chat_id}{ext}'
+                    break
+
+        if not os.path.exists(actual_file_name):
+            raise Exception("Downloaded file not found.")
 
         file_size = os.path.getsize(actual_file_name)
         
@@ -135,15 +137,14 @@ def callback_query(call):
         bot.delete_message(chat_id, call.message.message_id)
 
     except Exception as e:
-        bot.send_message(chat_id, f"❌ Error! Make sure FFmpeg is installed or the video is public.")
+        bot.send_message(chat_id, f"❌ Error: Could not download the video. Make sure the link is correct and public.")
         try:
-            os.remove(file_name)
+            if os.path.exists(file_name):
+                os.remove(file_name)
         except:
             pass
 
-# ==========================================
-# Fly.io / Render සර්වර් එක සඳහා Dummy Web Server එක
-# ==========================================
+# Dummy Web Server for 24/7 Uptime
 app = Flask(__name__)
 
 @app.route('/')
@@ -158,6 +159,6 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-print("බොට් වැඩ කරනවා... (Server Mode)")
+print("බොට් වැඩ කරනවා...")
 keep_alive()
 bot.polling(non_stop=True)
