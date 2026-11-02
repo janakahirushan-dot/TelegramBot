@@ -100,10 +100,10 @@ def callback_query(call):
         
     else:
         bot.edit_message_text(f"⏳ Downloading {data}p video, please wait...", chat_id=chat_id, message_id=call.message.message_id)
+        # Fly.io හි RAM එක ආරක්ෂා කර ගැනීමට සහ දෝෂ වළක්වා ගැනීමට ප්‍රශස්ත කරන ලද format සීමාව
         ydl_opts = {
-            'outtmpl': f'video_{chat_id}.mp4',
-            'format': f'bestvideo[height<={data}][ext=mp4]+bestaudio[ext=m4a]/best[height<={data}][filesize<50M]/best[filesize<50M]',
-            'merge_output_format': 'mp4',
+            'outtmpl': f'video_{chat_id}.%(ext)s',
+            'format': f'best[height<={data}][filesize<45M]/best[filesize<45M]',
         }
         file_name = f'video_{chat_id}.mp4'
 
@@ -111,36 +111,44 @@ def callback_query(call):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        file_size = os.path.getsize(file_name)
+        # ඩවුන්ලෝඩ් වූ ෆයිල් එකේ නම නිවැරදිව ලබා ගැනීම (ext වෙනස් විය හැක)
+        actual_file_name = file_name
+        if not os.path.exists(actual_file_name):
+            for ext in ['.mp4', '.mkv', '.webm', '.mp3']:
+                if os.path.exists(f'video_{chat_id}{ext}'):
+                    actual_file_name = f'video_{chat_id}{ext}'
+                    break
+
+        file_size = os.path.getsize(actual_file_name)
         
         if file_size > 52428800:
             bot.send_message(chat_id, "❌ Sorry, the file is larger than 50MB. Please choose a lower quality.")
         else:
-            with open(file_name, 'rb') as file:
+            with open(actual_file_name, 'rb') as file:
                 if data == "mp3":
                     bot.send_audio(chat_id, file, caption="✅ 320kbps MP3 Audio")
                 else:
                     q_text = "4K" if data == "2160" else "2K" if data == "1440" else f"{data}p"
                     bot.send_video(chat_id, file, caption=f"✅ {q_text} Quality Video")
 
-        os.remove(file_name)
+        os.remove(actual_file_name)
         bot.delete_message(chat_id, call.message.message_id)
 
     except Exception as e:
-        bot.send_message(chat_id, "❌ Error! Make sure FFmpeg is installed or the video is public.")
+        bot.send_message(chat_id, f"❌ Error! Make sure FFmpeg is installed or the video is public.")
         try:
             os.remove(file_name)
         except:
             pass
 
 # ==========================================
-# Render සර්වර් එක සඳහා Dummy Web Server එක
+# Fly.io / Render සර්වර් එක සඳහා Dummy Web Server එක
 # ==========================================
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is Running 24/7 on Render!"
+    return "Bot is Running 24/7!"
 
 def run():
     port = int(os.environ.get('PORT', 8080))
@@ -150,6 +158,6 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-print("බොට් වැඩ කරනවා... (Render Server Mode)")
+print("බොට් වැඩ කරනවා... (Server Mode)")
 keep_alive()
 bot.polling(non_stop=True)
